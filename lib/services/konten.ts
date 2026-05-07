@@ -1,3 +1,5 @@
+"use server";
+
 import { createClient } from '@/lib/supabase/client';
 import { prisma } from '@/lib/prisma';
 
