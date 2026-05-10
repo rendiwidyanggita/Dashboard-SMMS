@@ -89,6 +89,40 @@ export async function getGrowth(workspaceId: number, year: number, month: number
   return data?.[0] || null;
 }
 
+export async function getTrendViews(workspaceId: number) {
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const data = await prisma.evaluasi.findMany({
+    where: {
+      konten: {
+        id_workspace: BigInt(workspaceId)
+      },
+      tanggal_evaluasi: {
+        gte: sevenDaysAgo
+      }
+    },
+    select: {
+      tanggal_evaluasi: true,
+      total_views: true
+    },
+    orderBy: {
+      tanggal_evaluasi: 'asc'
+    }
+  });
+
+  // Group by date to handle multiple contents in one day
+  const trend = data.reduce((acc: any, curr) => {
+    const date = curr.tanggal_evaluasi?.toISOString().split('T')[0];
+    if (date) {
+      acc[date] = (acc[date] || 0) + (curr.total_views || 0);
+    }
+    return acc;
+  }, {});
+
+  return Object.entries(trend).map(([date, views]) => ({ date, views }));
+}
+
 // ==========================================
 // FUNGSI STORAGE & UPLOAD UNTUK FRONTEND
 // ==========================================
