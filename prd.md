@@ -1,7 +1,3 @@
-Berikut **full PRD SanggaluriMS versi revisi final**. Revisi ini sudah memasukkan perubahan terbaru: **Export Laporan tetap menjadi fitur utama**, status konten menjadi **Uploaded, Unuploaded, Pending, Cancelled**, dan deployment menggunakan **hosting sanggaluri.com**.
-
----
-
 # PRD — Project Requirements Document
 
 # SanggaluriMS
