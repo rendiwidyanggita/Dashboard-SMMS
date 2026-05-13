@@ -51,9 +51,12 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<number | null>(now.getDate());
   const [kontenList, setKontenList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [workspaceName, setWorkspaceName] = useState<string>("");
 
   useEffect(() => {
     fetchData();
+    const storedName = localStorage.getItem("active_workspace_name");
+    if (storedName) setWorkspaceName(storedName);
   }, []);
 
   const fetchData = async () => {
@@ -171,9 +174,11 @@ export default function CalendarPage() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-extrabold text-[#1e293b]">Calendar</h1>
-          <span className="px-3 py-1 bg-[#ccfbf1] text-[#0f766e] text-xs font-bold rounded-full">
-            TikTok
-          </span>
+          {workspaceName && (
+            <span className="px-3 py-1 bg-[#ccfbf1] text-[#0f766e] text-xs font-bold rounded-full">
+              {workspaceName}
+            </span>
+          )}
         </div>
         <div className="bg-white px-4 py-2 rounded-xl border border-gray-100 shadow-sm text-xs font-bold text-gray-500">
           {now.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
@@ -189,19 +194,19 @@ export default function CalendarPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={prevMonth}
-              className="p-2 hover:bg-gray-50 rounded-lg border border-gray-100 text-gray-400 transition-colors"
+              className="p-2 hover:bg-gray-50 rounded-lg border border-gray-100 text-gray-400 active:scale-95 transition-all shadow-sm hover:shadow-md"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={goToToday}
-              className="px-4 py-2 bg-white border border-gray-100 rounded-lg text-xs font-bold text-[#1e293b] hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 bg-white border border-gray-100 rounded-lg text-xs font-bold text-[#1e293b] hover:bg-gray-50 active:scale-95 transition-all shadow-sm hover:shadow-md"
             >
               Hari Ini
             </button>
             <button
               onClick={nextMonth}
-              className="p-2 hover:bg-gray-50 rounded-lg border border-gray-100 text-gray-400 transition-colors"
+              className="p-2 hover:bg-gray-50 rounded-lg border border-gray-100 text-gray-400 active:scale-95 transition-all shadow-sm hover:shadow-md"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

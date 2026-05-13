@@ -16,14 +16,6 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
     setError(null);
 
-    // Cek apakah email cocok dengan email admin yang dipatenkan
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-    if (adminEmail && email !== adminEmail) {
-      setError("Email yang Anda masukkan tidak terdaftar sebagai Admin.");
-      setIsLoading(false);
-      return;
-    }
-
     try {
       await resetPassword(email);
       setSuccess(true);
@@ -48,7 +40,8 @@ export default function ForgotPasswordPage() {
           </div>
           <h1 className="text-3xl font-bold text-white mb-3">Lupa Password?</h1>
           <p className="text-[#849591] text-sm leading-relaxed px-2">
-            Masukkan email yang terdaftar. Kami akan mengirimkan link untuk mereset password Anda.
+            Masukkan email yang terdaftar. Kami akan mengirimkan link untuk
+            mereset password Anda.
           </p>
         </div>
 
@@ -62,7 +55,7 @@ export default function ForgotPasswordPage() {
                 Silakan cek kotak masuk atau folder spam Anda.
               </p>
             </div>
-            <Link 
+            <Link
               href="/login"
               className="inline-flex items-center gap-2 text-sm text-[#10b981] hover:text-[#34d399] transition-colors font-medium"
             >
@@ -77,7 +70,7 @@ export default function ForgotPasswordPage() {
                 <p className="text-red-400 text-xs">{error}</p>
               </div>
             )}
-            
+
             <div className="space-y-2">
               <label className="text-xs font-semibold text-[#849591] flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5" />
@@ -94,8 +87,8 @@ export default function ForgotPasswordPage() {
             </div>
 
             <div className="pt-2">
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={isLoading}
                 className="w-full py-4 bg-[#052e24] border border-[#10b981]/30 text-white font-semibold rounded-xl hover:bg-[#073d30] active:scale-[0.98] transition-all flex items-center justify-center disabled:opacity-70 text-sm"
               >
@@ -108,7 +101,7 @@ export default function ForgotPasswordPage() {
             </div>
 
             <div className="mt-6 text-center">
-              <Link 
+              <Link
                 href="/login"
                 className="inline-flex items-center gap-2 text-sm text-[#556964] hover:text-white transition-colors"
               >

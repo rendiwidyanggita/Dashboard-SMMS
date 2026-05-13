@@ -103,8 +103,12 @@ export async function getGrowth(
 }
 
 export async function getTrendViews(workspaceId: number) {
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const dates = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    dates.push(d.toISOString().split("T")[0]);
+  }
 
   const data = await prisma.evaluasi.findMany({
     where: {
@@ -112,20 +116,16 @@ export async function getTrendViews(workspaceId: number) {
         id_workspace: BigInt(workspaceId),
       },
       tanggal_evaluasi: {
-        gte: sevenDaysAgo,
+        gte: new Date(dates[0]),
       },
     },
     select: {
       tanggal_evaluasi: true,
       total_views: true,
     },
-    orderBy: {
-      tanggal_evaluasi: "asc",
-    },
   });
 
-  // Group by date to handle multiple contents in one day
-  const trend = data.reduce((acc: any, curr) => {
+  const trendMap = data.reduce((acc: any, curr) => {
     const date = curr.tanggal_evaluasi?.toISOString().split("T")[0];
     if (date) {
       acc[date] = (acc[date] || 0) + (curr.total_views || 0);
@@ -133,7 +133,10 @@ export async function getTrendViews(workspaceId: number) {
     return acc;
   }, {});
 
-  return Object.entries(trend).map(([date, views]) => ({ date, views }));
+  return dates.map((date) => ({
+    date,
+    views: trendMap[date] || 0,
+  }));
 }
 
 // ==========================================

@@ -2,7 +2,12 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Instagram, Clapperboard, Plus, Loader2, ArrowRight } from "lucide-react";
+import {
+  Plus,
+  Loader2,
+  ArrowRight,
+} from "lucide-react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { getUserWorkspaces, createWorkspace } from "@/lib/services/workspace";
 import { clsx } from "clsx";
@@ -24,13 +29,19 @@ export default function WorkspacesPage() {
   async function fetchWorkspaces() {
     setIsLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         const data = await getUserWorkspaces(user.id);
         setWorkspaces(data || []);
 
         const storedId = localStorage.getItem("active_workspace_id");
-        if (storedId && data && data.find((ws: any) => ws.id_workspace.toString() === storedId)) {
+        if (
+          storedId &&
+          data &&
+          data.find((ws: any) => ws.id_workspace.toString() === storedId)
+        ) {
           setSelectedWsId(Number(storedId));
         } else if (data && data.length > 0) {
           setSelectedWsId(data[0].id_workspace);
@@ -64,8 +75,13 @@ export default function WorkspacesPage() {
   if (workspaces.length === 0) {
     return (
       <div className="min-h-screen bg-[#0c231f] flex flex-col items-center justify-center p-6 text-center">
-        <h1 className="text-4xl font-extrabold text-white mb-4">No Workspaces Found</h1>
-        <p className="text-[#849591] max-w-md">Akun Anda belum terhubung dengan workspace Instagram atau TikTok. Silakan hubungi administrator.</p>
+        <h1 className="text-4xl font-extrabold text-white mb-4">
+          No Workspaces Found
+        </h1>
+        <p className="text-[#849591] max-w-md">
+          Akun Anda belum terhubung dengan workspace Instagram atau TikTok.
+          Silakan hubungi administrator.
+        </p>
       </div>
     );
   }
@@ -78,7 +94,9 @@ export default function WorkspacesPage() {
 
       <div className="w-full max-w-md bg-[#161E20] p-10 sm:p-14 rounded-[3rem] shadow-2xl border border-white/5 text-center">
         <h2 className="text-3xl font-bold text-white mb-3">Pilih Workspace</h2>
-        <p className="text-[#849591] text-sm mb-10">Halo! Pilih workspace untuk mulai bekerja.</p>
+        <p className="text-[#849591] text-sm mb-10">
+          Halo! Pilih workspace untuk mulai bekerja.
+        </p>
 
         <div className="space-y-4 mb-10">
           {workspaces.map((ws: any) => {
@@ -93,18 +111,35 @@ export default function WorkspacesPage() {
                   "w-full p-4 rounded-2xl flex items-center gap-4 border transition-all text-left group",
                   isSelected
                     ? "bg-[#10b981]/10 border-[#10b981] text-white"
-                    : "bg-[#0f1516] border-white/5 text-[#849591] hover:border-white/20"
+                    : "bg-[#0f1516] border-white/5 text-[#849591] hover:border-white/20",
                 )}
               >
-                <div className={clsx(
-                  "w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg",
-                  isTikTok ? "bg-black" : "bg-gradient-to-tr from-pink-500 to-yellow-500"
-                )}>
-                  {isTikTok ? <Clapperboard className="w-6 h-6" /> : <Instagram className="w-6 h-6" />}
+                <div
+                  className={clsx(
+                    "w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden",
+                    isTikTok
+                      ? "bg-white"
+                      : "bg-white",
+                  )}
+                >
+                  {isTikTok ? (
+                    <Image src="/tiktok.svg" alt="TikTok" width={28} height={28} />
+                  ) : (
+                    <Image src="/instagram.svg" alt="Instagram" width={28} height={28} />
+                  )}
                 </div>
                 <div className="flex flex-col">
-                  <span className={clsx("font-bold", isSelected ? "text-white" : "text-white/80")}>{isTikTok ? "TikTok" : "Instagram"}</span>
-                  <span className="text-xs opacity-60">@{ws.nama_workspace.toLowerCase().replace(/\s+/g, '')}</span>
+                  <span
+                    className={clsx(
+                      "font-bold",
+                      isSelected ? "text-white" : "text-white/80",
+                    )}
+                  >
+                    {isTikTok ? "TikTok" : "Instagram"}
+                  </span>
+                  <span className="text-xs opacity-60">
+                    @{ws.nama_workspace.toLowerCase().replace(/\s+/g, "")}
+                  </span>
                 </div>
               </button>
             );

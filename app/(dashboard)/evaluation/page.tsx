@@ -1,13 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Search } from "lucide-react";
 import { clsx } from "clsx";
 import { Modal } from "@/components/ui/Modal";
 import { SuccessDialog } from "@/components/ui/SuccessDialog";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { getKonten } from "@/lib/services/konten";
-import { createEvaluasi, updateEvaluasi, deleteEvaluasi, getEvaluasiByKonten } from "@/lib/services/evaluasi";
+import {
+  createEvaluasi,
+  updateEvaluasi,
+  deleteEvaluasi,
+  getEvaluasiByKonten,
+} from "@/lib/services/evaluasi";
 import { Loader2 } from "lucide-react";
 
 // We will fetch real data from the database
@@ -18,26 +23,59 @@ export default function EvaluationPage() {
   const [loading, setLoading] = useState(true);
   const [kontenList, setKontenList] = useState<any[]>([]);
   const [stats, setStats] = useState<any[]>([]);
-  const [activeFilter, setActiveFilter] = useState(0); // 0: All, 1: Last Week
-  const [selectedMonth, setSelectedMonth] = useState("all");
+  const [activeFilter, setActiveFilter] = useState(0); // 0: Semua, 1: Bulan Ini, 2: Last Week
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    new Date().toLocaleString("en-US", { month: "short" }).toLowerCase(),
+  );
   const [limit, setLimit] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [totalData, setTotalData] = useState(0);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<any | null>(null);
+  const [showNoDataAlert, setShowNoDataAlert] = useState(false);
   const [selectedRow, setSelectedRow] = useState<any>(null);
+  const [workspaceName, setWorkspaceName] = useState<string>("");
 
   const [editForm, setEditForm] = useState({
-    id_evaluasi: "", id_konten: "", name: "", uploadDate: "", evalDate: "", views: "", likes: "", comments: "", shares: "", favs: "", statusUpload: "Uploaded"
+    id_evaluasi: "",
+    id_konten: "",
+    name: "",
+    uploadDate: "",
+    evalDate: "",
+    views: "",
+    likes: "",
+    comments: "",
+    shares: "",
+    favs: "",
+    statusUpload: "Uploaded",
   });
 
   const [addForm, setAddForm] = useState({
-    id_konten: "", name: "", uploadDate: "", evalDate: "", views: "", likes: "", comments: "", shares: "", favs: "", statusUpload: "Uploaded"
+    id_konten: "",
+    name: "",
+    uploadDate: "",
+    evalDate: "",
+    views: "",
+    likes: "",
+    comments: "",
+    shares: "",
+    favs: "",
+    statusUpload: "Uploaded",
   });
 
   useEffect(() => {
     fetchData();
-  }, [selectedMonth, activeFilter, limit]);
+    const storedName = localStorage.getItem("active_workspace_name");
+    if (storedName) setWorkspaceName(storedName);
+  }, [selectedMonth, activeFilter, limit, currentPage, searchQuery]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedMonth, activeFilter, limit, searchQuery]);
 
   const fetchData = async () => {
     try {
@@ -46,25 +84,36 @@ export default function EvaluationPage() {
       if (!workspaceId) return;
 
       const data = await getKonten(workspaceId);
-      
-      // Apply filters client-side for now to match the UI behavior
+
       let filteredData = [...data];
-      
-      // Filter by month if not 'all'
-      if (selectedMonth !== 'all') {
+
+      // Default sorting: Most recently added first (by ID desc)
+      filteredData.sort((a, b) => b.id_konten - a.id_konten);
+
+      // Apply Filters
+      if (activeFilter === 1) {
+        // Filter by Month
         const monthMap: Record<string, number> = {
-          'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'may': 4, 'jun': 5,
-          'jul': 6, 'aug': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dec': 11
+          jan: 0,
+          feb: 1,
+          mar: 2,
+          apr: 3,
+          may: 4,
+          jun: 5,
+          jul: 6,
+          aug: 7,
+          sep: 8,
+          oct: 9,
+          nov: 10,
+          dec: 11,
         };
         const targetMonth = monthMap[selectedMonth.toLowerCase()];
         filteredData = filteredData.filter((item: any) => {
           if (!item.tanggal_upload) return false;
           return new Date(item.tanggal_upload).getMonth() === targetMonth;
         });
-      }
-
-      // Filter by Last Week if activeFilter === 1
-      if (activeFilter === 1) {
+      } else if (activeFilter === 2) {
+        // Filter by Last Week
         const lastWeek = new Date();
         lastWeek.setDate(lastWeek.getDate() - 7);
         filteredData = filteredData.filter((item: any) => {
@@ -73,22 +122,43 @@ export default function EvaluationPage() {
         });
       }
 
-      setKontenList(filteredData.slice(0, limit));
+      // Apply Search Filter
+      if (searchQuery.trim() !== "") {
+        const query = searchQuery.toLowerCase();
+        filteredData = filteredData.filter((item: any) =>
+          item.nama_konten.toLowerCase().includes(query),
+        );
+      }
+
+      setTotalData(filteredData.length);
+      const startIndex = (currentPage - 1) * limit;
+      setKontenList(filteredData.slice(startIndex, startIndex + limit));
 
       // Compute Stats
-      const uploaded = data.filter((k: any) => k.status_konten === 'uploaded').length;
-      const unuploaded = data.filter((k: any) => k.status_konten === 'unuploaded').length;
-      const pending = data.filter((k: any) => k.status_konten === 'pending').length;
-      const cancelled = data.filter((k: any) => k.status_konten === 'cancelled').length;
+      const uploaded = data.filter(
+        (k: any) => k.status_konten === "uploaded",
+      ).length;
+      const unuploaded = data.filter(
+        (k: any) => k.status_konten === "unuploaded",
+      ).length;
+      const pending = data.filter(
+        (k: any) => k.status_konten === "pending",
+      ).length;
+      const cancelled = data.filter(
+        (k: any) => k.status_konten === "cancelled",
+      ).length;
 
       setStats([
         { label: "Total Konten", value: data.length },
         { label: "Uploaded", value: uploaded, valueColor: "text-[#10b981]" },
-        { label: "Unuploaded", value: unuploaded, valueColor: "text-[#ef4444]" },
+        {
+          label: "Unuploaded",
+          value: unuploaded,
+          valueColor: "text-[#ef4444]",
+        },
         { label: "Pending", value: pending, valueColor: "text-[#f59e0b]" },
         { label: "Cancelled", value: cancelled, valueColor: "text-[#64748b]" },
       ]);
-
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -103,14 +173,21 @@ export default function EvaluationPage() {
       id_evaluasi: evalData?.id_evaluasi || "",
       id_konten: konten.id_konten,
       name: konten.nama_konten,
-      uploadDate: konten.tanggal_upload ? new Date(konten.tanggal_upload).toISOString().split('T')[0] : "",
-      evalDate: evalData?.tanggal_evaluasi ? new Date(evalData.tanggal_evaluasi).toISOString().split('T')[0] : "",
+      uploadDate: konten.tanggal_upload
+        ? new Date(konten.tanggal_upload).toISOString().split("T")[0]
+        : "",
+      evalDate: evalData?.tanggal_evaluasi
+        ? new Date(evalData.tanggal_evaluasi).toISOString().split("T")[0]
+        : "",
       views: evalData?.total_views?.toString() || "0",
       likes: evalData?.total_likes?.toString() || "0",
       comments: evalData?.total_comment?.toString() || "0",
       shares: evalData?.total_shares?.toString() || "0",
       favs: evalData?.total_favorites?.toString() || "0",
-      statusUpload: konten.status_konten ? konten.status_konten.charAt(0).toUpperCase() + konten.status_konten.slice(1) : "Uploaded"
+      statusUpload: konten.status_konten
+        ? konten.status_konten.charAt(0).toUpperCase() +
+          konten.status_konten.slice(1)
+        : "Uploaded",
     });
     setIsEditOpen(true);
   };
@@ -119,7 +196,9 @@ export default function EvaluationPage() {
     try {
       if (editForm.id_evaluasi) {
         await updateEvaluasi(editForm.id_evaluasi, {
-          tanggal_evaluasi: editForm.evalDate ? new Date(editForm.evalDate) : null,
+          tanggal_evaluasi: editForm.evalDate
+            ? new Date(editForm.evalDate)
+            : null,
           total_views: parseInt(editForm.views),
           total_likes: parseInt(editForm.likes),
           total_comment: parseInt(editForm.comments),
@@ -129,7 +208,9 @@ export default function EvaluationPage() {
       } else {
         await createEvaluasi({
           id_konten: Number(editForm.id_konten),
-          tanggal_evaluasi: editForm.evalDate ? new Date(editForm.evalDate) : null,
+          tanggal_evaluasi: editForm.evalDate
+            ? new Date(editForm.evalDate)
+            : null,
           total_views: parseInt(editForm.views),
           total_likes: parseInt(editForm.likes),
           total_comment: parseInt(editForm.comments),
@@ -152,7 +233,7 @@ export default function EvaluationPage() {
     if (evalData) {
       setDeleteConfirm(evalData);
     } else {
-      alert("Konten ini belum memiliki data evaluasi");
+      setShowNoDataAlert(true);
     }
   };
 
@@ -169,19 +250,19 @@ export default function EvaluationPage() {
     }
   };
 
-  const handleExport = (format: 'csv' | 'xlsx') => {
+  const handleExport = (format: "csv" | "xlsx") => {
     const workspaceId = localStorage.getItem("active_workspace_id");
     if (!workspaceId) return;
 
-    const filterType = activeFilter === 1 ? 'last_week' : 'all';
+    const filterType = activeFilter === 1 ? "last_week" : "all";
     const params = new URLSearchParams({
       workspaceId,
       month: selectedMonth,
       filter: filterType,
-      format
+      format,
     });
 
-    window.open(`/api/export-laporan?${params.toString()}`, '_blank');
+    window.open(`/api/export-laporan?${params.toString()}`, "_blank");
   };
 
   const handleSaveAdd = async () => {
@@ -213,7 +294,9 @@ export default function EvaluationPage() {
     const shares = parseInt(form.shares) || 0;
     const favs = parseInt(form.favs) || 0;
     if (views === 0) return "0.00%";
-    return ((likes + comments + shares + favs) / views * 100).toFixed(2) + "%";
+    return (
+      (((likes + comments + shares + favs) / views) * 100).toFixed(2) + "%"
+    );
   };
 
   return (
@@ -222,16 +305,32 @@ export default function EvaluationPage() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-extrabold text-[#1e293b]">Evaluasi</h1>
-          <span className="px-3 py-1 bg-[#ccfbf1] text-[#0f766e] text-xs font-bold rounded-full">TikTok</span>
+          {workspaceName && (
+            <span className="px-3 py-1 bg-[#ccfbf1] text-[#0f766e] text-xs font-bold rounded-full">
+              {workspaceName}
+            </span>
+          )}
         </div>
       </div>
 
       {/* Top Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {stats.map((stat, idx) => (
-          <div key={idx} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{stat.label}</h3>
-            <div className={clsx("text-3xl font-extrabold", stat.valueColor || "text-[#1e293b]")}>{stat.value}</div>
+          <div
+            key={idx}
+            className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"
+          >
+            <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+              {stat.label}
+            </h3>
+            <div
+              className={clsx(
+                "text-3xl font-extrabold",
+                stat.valueColor || "text-[#1e293b]",
+              )}
+            >
+              {stat.value}
+            </div>
           </div>
         ))}
       </div>
@@ -239,7 +338,12 @@ export default function EvaluationPage() {
       {/* Date + Export Row */}
       <div className="flex items-center justify-end gap-3">
         <div className="px-4 py-2 bg-white rounded-xl border border-gray-100 shadow-sm text-xs font-bold text-gray-500">
-          Min, 19 Apr 2026
+          {new Date().toLocaleDateString("id-ID", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })}
         </div>
         <div className="relative group">
           <button className="flex items-center gap-2 px-6 py-2.5 bg-[#122C28] text-white text-xs font-bold rounded-xl hover:bg-[#1B3C37] transition-all">
@@ -248,14 +352,14 @@ export default function EvaluationPage() {
           </button>
           <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
             <div className="py-2">
-              <button 
-                onClick={() => handleExport('xlsx')}
+              <button
+                onClick={() => handleExport("xlsx")}
                 className="w-full text-left px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Export as Excel (.xlsx)
               </button>
-              <button 
-                onClick={() => handleExport('csv')}
+              <button
+                onClick={() => handleExport("csv")}
                 className="w-full text-left px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Export as CSV (.csv)
@@ -268,50 +372,113 @@ export default function EvaluationPage() {
       {/* Main Table Section */}
       <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <h3 className="text-xl font-bold text-[#1e293b]">Tabel Evaluasi Konten</h3>
+          <h3 className="text-xl font-bold text-[#1e293b]">
+            Tabel Evaluasi Konten
+          </h3>
           <div className="flex flex-wrap items-center gap-2">
-            <select 
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl outline-none focus:border-[#10b981]"
-            >
-              <option value="all">Semua Bulan</option>
-              <option value="jan">Januari</option>
-              <option value="feb">Februari</option>
-              <option value="mar">Maret</option>
-              <option value="apr">April</option>
-              <option value="may">Mei</option>
-              <option value="jun">Juni</option>
-              <option value="jul">Juli</option>
-              <option value="aug">Agustus</option>
-              <option value="sep">September</option>
-              <option value="oct">Oktober</option>
-              <option value="nov">November</option>
-              <option value="dec">Desember</option>
-            </select>
+            <div className="relative group">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#10b981] transition-colors" />
+              <input
+                type="text"
+                placeholder="Cari nama konten..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-2 text-xs font-bold bg-gray-50 border border-gray-100 rounded-xl outline-none focus:bg-white focus:border-[#10b981] focus:ring-4 focus:ring-[#10b981]/5 text-[#1e293b] w-full sm:w-[240px] transition-all"
+              />
+            </div>
             <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100">
-              {["All", "Last Week"].map((f, i) => (
-                <button key={i} onClick={() => setActiveFilter(i)} className={clsx(
-                  "px-4 py-1.5 text-xs font-bold rounded-lg transition-all",
-                  activeFilter === i ? "bg-white text-[#1e293b] shadow-sm" : "text-gray-400 hover:text-gray-600"
-                )}>
+              {["Semua", "Pilih Bulan", "Last Week"].map((f, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveFilter(i)}
+                  className={clsx(
+                    "px-4 py-1.5 text-xs font-bold rounded-lg transition-all",
+                    activeFilter === i
+                      ? "bg-white text-[#1e293b] shadow-sm"
+                      : "text-gray-400 hover:text-gray-600",
+                  )}
+                >
                   {f}
                 </button>
               ))}
             </div>
-            <select 
+
+            {activeFilter === 1 && (
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl outline-none focus:border-[#10b981] text-[#1e293b] animate-in slide-in-from-left-2 duration-200 cursor-pointer hover:border-gray-300 transition-all"
+              >
+                <option value="jan" className="text-[#1e293b]">
+                  Januari
+                </option>
+                <option value="feb" className="text-[#1e293b]">
+                  Februari
+                </option>
+                <option value="mar" className="text-[#1e293b]">
+                  Maret
+                </option>
+                <option value="apr" className="text-[#1e293b]">
+                  April
+                </option>
+                <option value="may" className="text-[#1e293b]">
+                  Mei
+                </option>
+                <option value="jun" className="text-[#1e293b]">
+                  Juni
+                </option>
+                <option value="jul" className="text-[#1e293b]">
+                  Juli
+                </option>
+                <option value="aug" className="text-[#1e293b]">
+                  Agustus
+                </option>
+                <option value="sep" className="text-[#1e293b]">
+                  September
+                </option>
+                <option value="oct" className="text-[#1e293b]">
+                  Oktober
+                </option>
+                <option value="nov" className="text-[#1e293b]">
+                  November
+                </option>
+                <option value="dec" className="text-[#1e293b]">
+                  Desember
+                </option>
+              </select>
+            )}
+            <select
               value={limit}
               onChange={(e) => setLimit(Number(e.target.value))}
-              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl outline-none focus:border-[#10b981]"
+              className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl outline-none focus:border-[#10b981] text-[#1e293b] cursor-pointer hover:border-gray-300 transition-all"
             >
-              <option value="10">10 Data</option>
-              <option value="25">25 Data</option>
-              <option value="50">50 Data</option>
-              <option value="100">100 Data</option>
+              <option value={10} className="text-[#1e293b]">
+                10 Data
+              </option>
+              <option value={25} className="text-[#1e293b]">
+                25 Data
+              </option>
+              <option value={50} className="text-[#1e293b]">
+                50 Data
+              </option>
+              <option value={100} className="text-[#1e293b]">
+                100 Data
+              </option>
             </select>
-            <button 
+            <button
               onClick={() => {
-                setAddForm({ id_konten: "", name: "", uploadDate: "", evalDate: "", views: "", likes: "", comments: "", shares: "", favs: "", statusUpload: "Uploaded" });
+                setAddForm({
+                  id_konten: "",
+                  name: "",
+                  uploadDate: "",
+                  evalDate: "",
+                  views: "",
+                  likes: "",
+                  comments: "",
+                  shares: "",
+                  favs: "",
+                  statusUpload: "Uploaded",
+                });
                 setIsAddOpen(true);
               }}
               className="flex items-center gap-2 px-6 py-2.5 bg-[#122C28] text-white text-xs font-bold rounded-xl hover:bg-[#1B3C37] transition-all"
@@ -343,57 +510,101 @@ export default function EvaluationPage() {
                 <tr>
                   <td colSpan={10} className="py-20 text-center">
                     <Loader2 className="w-8 h-8 text-[#10b981] animate-spin mx-auto mb-2" />
-                    <p className="text-sm text-gray-500 font-medium">Memuat data evaluasi...</p>
+                    <p className="text-sm text-gray-500 font-medium">
+                      Memuat data evaluasi...
+                    </p>
                   </td>
                 </tr>
               ) : kontenList.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-20 text-center text-gray-400 font-medium">Belum ada data konten</td>
+                  <td
+                    colSpan={10}
+                    className="py-20 text-center text-gray-400 font-medium"
+                  >
+                    Belum ada data konten
+                  </td>
                 </tr>
               ) : (
                 kontenList.map((konten) => {
                   const evalData = konten.evaluasi?.[0];
-                  const er = evalData?.nilai_er ? (Number(evalData.nilai_er)).toFixed(2) + "%" : "0.00%";
-                  const erVal = evalData?.nilai_er ? Number(evalData.nilai_er) : 0;
-                  const erType = erVal > 10 ? "good" : erVal > 5 ? "average" : erVal > 0 ? "average" : "none";
+                  const er = evalData?.nilai_er
+                    ? Number(evalData.nilai_er).toFixed(2) + "%"
+                    : "0.00%";
+                  const erVal = evalData?.nilai_er
+                    ? Number(evalData.nilai_er)
+                    : 0;
+                  const erType =
+                    erVal > 10
+                      ? "good"
+                      : erVal > 5
+                        ? "average"
+                        : erVal > 0
+                          ? "average"
+                          : "none";
 
                   return (
-                    <tr key={konten.id_konten} className="hover:bg-gray-50/50 transition-colors group">
+                    <tr
+                      key={konten.id_konten}
+                      className="hover:bg-gray-50/50 transition-colors group"
+                    >
                       <td className="px-4 py-4">
-                        <span className="text-sm font-bold text-[#1e293b]">{konten.nama_konten}</span>
+                        <span className="text-sm font-bold text-[#1e293b]">
+                          {konten.nama_konten}
+                        </span>
                       </td>
                       <td className="px-4 py-4 text-xs text-gray-500 font-medium">
-                        {konten.tanggal_upload ? new Date(konten.tanggal_upload).toLocaleDateString('id-ID') : "-"}
+                        {konten.tanggal_upload
+                          ? new Date(konten.tanggal_upload).toLocaleDateString(
+                              "id-ID",
+                            )
+                          : "-"}
                       </td>
                       <td className="px-4 py-4 text-xs text-gray-500 font-medium">
-                        {evalData?.tanggal_evaluasi ? new Date(evalData.tanggal_evaluasi).toLocaleDateString('id-ID') : "-"}
+                        {evalData?.tanggal_evaluasi
+                          ? new Date(
+                              evalData.tanggal_evaluasi,
+                            ).toLocaleDateString("id-ID")
+                          : "-"}
                       </td>
-                      <td className="px-4 py-4 text-xs text-[#1e293b] font-bold">{evalData?.total_views || 0}</td>
-                      <td className="px-4 py-4 text-xs text-[#1e293b] font-bold">{evalData?.total_likes || 0}</td>
-                      <td className="px-4 py-4 text-xs text-[#1e293b] font-bold">{evalData?.total_comment || 0}</td>
-                      <td className="px-4 py-4 text-xs text-[#1e293b] font-bold">{evalData?.total_shares || 0}</td>
-                      <td className="px-4 py-4 text-xs text-[#1e293b] font-bold">{evalData?.total_favorites || 0}</td>
+                      <td className="px-4 py-4 text-xs text-[#1e293b] font-bold">
+                        {evalData?.total_views || 0}
+                      </td>
+                      <td className="px-4 py-4 text-xs text-[#1e293b] font-bold">
+                        {evalData?.total_likes || 0}
+                      </td>
+                      <td className="px-4 py-4 text-xs text-[#1e293b] font-bold">
+                        {evalData?.total_comment || 0}
+                      </td>
+                      <td className="px-4 py-4 text-xs text-[#1e293b] font-bold">
+                        {evalData?.total_shares || 0}
+                      </td>
+                      <td className="px-4 py-4 text-xs text-[#1e293b] font-bold">
+                        {evalData?.total_favorites || 0}
+                      </td>
                       <td className="px-4 py-4">
-                        <span className={clsx(
-                          "px-3 py-1 rounded-md text-[10px] font-bold",
-                          erType === "good" && "bg-[#ccfbf1] text-[#0f766e]",
-                          erType === "average" && "bg-[#dcfce7] text-[#166534]",
-                          erType === "none" && "bg-[#fee2e2] text-[#991b1b]",
-                        )}>
+                        <span
+                          className={clsx(
+                            "px-3 py-1 rounded-md text-[10px] font-bold",
+                            erType === "good" && "bg-[#ccfbf1] text-[#0f766e]",
+                            erType === "average" &&
+                              "bg-[#dcfce7] text-[#166534]",
+                            erType === "none" && "bg-[#fee2e2] text-[#991b1b]",
+                          )}
+                        >
                           {er}
                         </span>
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-center gap-2">
-                          <button 
+                          <button
                             onClick={() => handleEditClick(konten)}
-                            className="p-2 bg-[#f59e0b] text-white rounded-lg hover:bg-[#d97706] transition-all"
+                            className="p-2 bg-[#f59e0b] text-white rounded-lg hover:bg-[#d97706] active:scale-95 transition-all shadow-sm hover:shadow-md"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => handleDelete(konten)}
-                            className="p-2 bg-[#ef4444] text-white rounded-lg hover:bg-[#dc2626] transition-all"
+                            className="p-2 bg-[#ef4444] text-white rounded-lg hover:bg-[#dc2626] active:scale-95 transition-all shadow-sm hover:shadow-md"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -406,16 +617,100 @@ export default function EvaluationPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalData > limit && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-8 border-t border-gray-50">
+            <p className="text-xs font-medium text-gray-500">
+              Menampilkan{" "}
+              <span className="text-[#1e293b] font-bold">
+                {(currentPage - 1) * limit + 1}
+              </span>{" "}
+              -{" "}
+              <span className="text-[#1e293b] font-bold">
+                {Math.min(currentPage * limit, totalData)}
+              </span>{" "}
+              dari <span className="text-[#1e293b] font-bold">{totalData}</span>{" "}
+              data
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl text-[#1e293b] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shadow-sm"
+              >
+                Sebelumnya
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.ceil(totalData / limit) }).map(
+                  (_, i) => {
+                    const pageNum = i + 1;
+                    // Show current page, first, last, and pages around current
+                    if (
+                      pageNum === 1 ||
+                      pageNum === Math.ceil(totalData / limit) ||
+                      (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={clsx(
+                            "w-10 h-10 text-xs font-bold rounded-xl transition-all active:scale-95",
+                            currentPage === pageNum
+                              ? "bg-[#122C28] text-white shadow-md shadow-[#122C28]/20"
+                              : "bg-white border border-gray-100 text-[#1e293b]/60 hover:text-[#1e293b] hover:bg-gray-50",
+                          )}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    } else if (
+                      pageNum === currentPage - 2 ||
+                      pageNum === currentPage + 2
+                    ) {
+                      return (
+                        <span key={pageNum} className="text-gray-300 px-1">
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  },
+                )}
+              </div>
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) =>
+                    Math.min(prev + 1, Math.ceil(totalData / limit)),
+                  )
+                }
+                disabled={currentPage === Math.ceil(totalData / limit)}
+                className="px-4 py-2 text-xs font-bold bg-white border border-gray-200 rounded-xl text-[#1e293b] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shadow-sm"
+              >
+                Selanjutnya
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Edit Data Evaluasi Modal */}
-      <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} maxWidth="max-w-xl">
+      <Modal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        maxWidth="max-w-xl"
+      >
         <div className="p-8">
-          <h2 className="text-xl font-bold text-[#1e293b] mb-6">Edit Data Evaluasi</h2>
+          <h2 className="text-xl font-bold text-[#1e293b] mb-6">
+            Edit Data Evaluasi
+          </h2>
 
           <div className="space-y-5">
             <div>
-              <label className="text-xs font-bold text-[#64748b] mb-1.5 block">Nama Konten *</label>
+              <label className="text-xs font-bold text-[#64748b] mb-1.5 block">
+                Nama Konten *
+              </label>
               <input
                 type="text"
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all bg-gray-50"
@@ -426,85 +721,121 @@ export default function EvaluationPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-[#10b981] mb-1.5 block">Tanggal Upload</label>
+                <label className="text-xs font-bold text-[#10b981] mb-1.5 block">
+                  Tanggal Upload
+                </label>
                 <input
                   type="date"
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all"
                   value={editForm.uploadDate}
-                  onChange={(e) => setEditForm({...editForm, uploadDate: e.target.value})}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, uploadDate: e.target.value })
+                  }
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#64748b] mb-1.5 block">Tanggal Evaluasi</label>
+                <label className="text-xs font-bold text-[#64748b] mb-1.5 block">
+                  Tanggal Evaluasi
+                </label>
                 <input
                   type="date"
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all"
                   value={editForm.evalDate}
-                  onChange={(e) => setEditForm({...editForm, evalDate: e.target.value})}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, evalDate: e.target.value })
+                  }
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-[#10b981] mb-1.5 block">Total View</label>
+                <label className="text-xs font-bold text-[#10b981] mb-1.5 block">
+                  Total View
+                </label>
                 <input
                   type="number"
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all"
                   value={editForm.views}
-                  onChange={(e) => setEditForm({...editForm, views: e.target.value})}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, views: e.target.value })
+                  }
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#64748b] mb-1.5 block">Total Likes</label>
+                <label className="text-xs font-bold text-[#64748b] mb-1.5 block">
+                  Total Likes
+                </label>
                 <input
                   type="number"
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all"
                   value={editForm.likes}
-                  onChange={(e) => setEditForm({...editForm, likes: e.target.value})}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, likes: e.target.value })
+                  }
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-[#10b981] mb-1.5 block">Komentar</label>
+                <label className="text-xs font-bold text-[#10b981] mb-1.5 block">
+                  Komentar
+                </label>
                 <input
                   type="number"
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all"
                   value={editForm.comments}
-                  onChange={(e) => setEditForm({...editForm, comments: e.target.value})}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, comments: e.target.value })
+                  }
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#64748b] mb-1.5 block">Share</label>
+                <label className="text-xs font-bold text-[#64748b] mb-1.5 block">
+                  Share
+                </label>
                 <input
                   type="number"
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all"
                   value={editForm.shares}
-                  onChange={(e) => setEditForm({...editForm, shares: e.target.value})}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, shares: e.target.value })
+                  }
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-[#10b981] mb-1.5 block">Favorit</label>
+                <label className="text-xs font-bold text-[#10b981] mb-1.5 block">
+                  Favorit
+                </label>
                 <input
                   type="number"
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all"
                   value={editForm.favs}
-                  onChange={(e) => setEditForm({...editForm, favs: e.target.value})}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, favs: e.target.value })
+                  }
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#64748b] mb-1.5 block">Status Upload</label>
+                <label className="text-xs font-bold text-[#64748b] mb-1.5 block">
+                  Status Upload
+                </label>
                 <select
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none appearance-none cursor-pointer"
                   value={editForm.statusUpload}
-                  onChange={(e) => setEditForm({...editForm, statusUpload: e.target.value})}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, statusUpload: e.target.value })
+                  }
                 >
-                  {statusUploadOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                  {statusUploadOptions.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -512,19 +843,23 @@ export default function EvaluationPage() {
             {/* ER computed */}
             <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
               <p className="text-xs text-gray-500">
-                ER dihitung otomatis: (Likes + Komentar + Share + Favorit) / Views × 100 = <span className="font-bold text-[#10b981]">{computeER(editForm)}</span>
+                ER dihitung otomatis: (Likes + Komentar + Share + Favorit) /
+                Views × 100 ={" "}
+                <span className="font-bold text-[#10b981]">
+                  {computeER(editForm)}
+                </span>
               </p>
             </div>
           </div>
 
           <div className="flex items-center justify-end mt-8 pt-6 border-t border-gray-100 gap-3">
-            <button 
+            <button
               onClick={() => setIsEditOpen(false)}
               className="px-6 py-2.5 border border-gray-200 text-[#1e293b] rounded-xl text-sm font-bold hover:bg-gray-50 transition-all"
             >
               Batal
             </button>
-            <button 
+            <button
               onClick={handleSaveEdit}
               className="px-6 py-2.5 bg-[#122C28] text-white rounded-xl text-sm font-bold hover:bg-[#1B3C37] transition-all"
             >
@@ -535,102 +870,196 @@ export default function EvaluationPage() {
       </Modal>
 
       {/* Add Evaluasi Modal */}
-      <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} maxWidth="max-w-xl">
+      <Modal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        maxWidth="max-w-xl"
+      >
         <div className="p-8">
-          <h2 className="text-xl font-bold text-[#1e293b] mb-6">Tambah Data Evaluasi</h2>
+          <h2 className="text-xl font-bold text-[#1e293b] mb-6">
+            Tambah Data Evaluasi
+          </h2>
 
           <div className="space-y-5">
             <div>
-              <label className="text-xs font-bold text-[#64748b] mb-1.5 block">Pilih Konten *</label>
+              <label className="text-xs font-bold text-[#64748b] mb-1.5 block">
+                Pilih Konten *
+              </label>
               <select
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all"
                 value={addForm.id_konten}
                 onChange={(e) => {
-                  const k = kontenList.find(item => item.id_konten.toString() === e.target.value);
+                  const k = kontenList.find(
+                    (item) => item.id_konten.toString() === e.target.value,
+                  );
                   setAddForm({
-                    ...addForm, 
+                    ...addForm,
                     id_konten: e.target.value,
-                    uploadDate: k?.tanggal_upload ? new Date(k.tanggal_upload).toISOString().split('T')[0] : ""
+                    uploadDate: k?.tanggal_upload
+                      ? new Date(k.tanggal_upload).toISOString().split("T")[0]
+                      : "",
                   });
                 }}
               >
                 <option value="">Pilih Konten...</option>
-                {kontenList.map(k => (
-                  <option key={k.id_konten} value={k.id_konten.toString()}>{k.nama_konten}</option>
+                {kontenList.map((k) => (
+                  <option key={k.id_konten} value={k.id_konten.toString()}>
+                    {k.nama_konten}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-[#10b981] mb-1.5 block">Tanggal Upload</label>
+                <label className="text-xs font-bold text-[#10b981] mb-1.5 block">
+                  Tanggal Upload
+                </label>
                 <input
                   type="date"
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all"
                   value={addForm.uploadDate}
-                  onChange={(e) => setAddForm({...addForm, uploadDate: e.target.value})}
+                  onChange={(e) =>
+                    setAddForm({ ...addForm, uploadDate: e.target.value })
+                  }
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#64748b] mb-1.5 block">Tanggal Evaluasi</label>
+                <label className="text-xs font-bold text-[#64748b] mb-1.5 block">
+                  Tanggal Evaluasi
+                </label>
                 <input
                   type="date"
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all"
                   value={addForm.evalDate}
-                  onChange={(e) => setAddForm({...addForm, evalDate: e.target.value})}
+                  onChange={(e) =>
+                    setAddForm({ ...addForm, evalDate: e.target.value })
+                  }
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-[#10b981] mb-1.5 block">Total View</label>
-                <input type="number" placeholder="0" className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all" value={addForm.views} onChange={(e) => setAddForm({...addForm, views: e.target.value})} />
+                <label className="text-xs font-bold text-[#10b981] mb-1.5 block">
+                  Total View
+                </label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all"
+                  value={addForm.views}
+                  onChange={(e) =>
+                    setAddForm({ ...addForm, views: e.target.value })
+                  }
+                />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#64748b] mb-1.5 block">Total Likes</label>
-                <input type="number" placeholder="0" className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all" value={addForm.likes} onChange={(e) => setAddForm({...addForm, likes: e.target.value})} />
+                <label className="text-xs font-bold text-[#64748b] mb-1.5 block">
+                  Total Likes
+                </label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all"
+                  value={addForm.likes}
+                  onChange={(e) =>
+                    setAddForm({ ...addForm, likes: e.target.value })
+                  }
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-[#10b981] mb-1.5 block">Komentar</label>
-                <input type="number" placeholder="0" className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all" value={addForm.comments} onChange={(e) => setAddForm({...addForm, comments: e.target.value})} />
+                <label className="text-xs font-bold text-[#10b981] mb-1.5 block">
+                  Komentar
+                </label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all"
+                  value={addForm.comments}
+                  onChange={(e) =>
+                    setAddForm({ ...addForm, comments: e.target.value })
+                  }
+                />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#64748b] mb-1.5 block">Share</label>
-                <input type="number" placeholder="0" className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all" value={addForm.shares} onChange={(e) => setAddForm({...addForm, shares: e.target.value})} />
+                <label className="text-xs font-bold text-[#64748b] mb-1.5 block">
+                  Share
+                </label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all"
+                  value={addForm.shares}
+                  onChange={(e) =>
+                    setAddForm({ ...addForm, shares: e.target.value })
+                  }
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-[#10b981] mb-1.5 block">Favorit</label>
-                <input type="number" placeholder="0" className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all" value={addForm.favs} onChange={(e) => setAddForm({...addForm, favs: e.target.value})} />
+                <label className="text-xs font-bold text-[#10b981] mb-1.5 block">
+                  Favorit
+                </label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none focus:border-[#10b981] transition-all"
+                  value={addForm.favs}
+                  onChange={(e) =>
+                    setAddForm({ ...addForm, favs: e.target.value })
+                  }
+                />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#64748b] mb-1.5 block">Status Upload</label>
+                <label className="text-xs font-bold text-[#64748b] mb-1.5 block">
+                  Status Upload
+                </label>
                 <select
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-[#1e293b] outline-none appearance-none cursor-pointer"
                   value={addForm.statusUpload}
-                  onChange={(e) => setAddForm({...addForm, statusUpload: e.target.value})}
+                  onChange={(e) =>
+                    setAddForm({ ...addForm, statusUpload: e.target.value })
+                  }
                 >
-                  {statusUploadOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                  {statusUploadOptions.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
 
             <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
               <p className="text-xs text-gray-500">
-                ER dihitung otomatis: (Likes + Komentar + Share + Favorit) / Views × 100 = <span className="font-bold text-[#10b981]">{computeER(addForm)}</span>
+                ER dihitung otomatis: (Likes + Komentar + Share + Favorit) /
+                Views × 100 ={" "}
+                <span className="font-bold text-[#10b981]">
+                  {computeER(addForm)}
+                </span>
               </p>
             </div>
           </div>
 
           <div className="flex items-center justify-end mt-8 pt-6 border-t border-gray-100 gap-3">
-            <button onClick={() => setIsAddOpen(false)} className="px-6 py-2.5 border border-gray-200 text-[#1e293b] rounded-xl text-sm font-bold hover:bg-gray-50 transition-all">Batal</button>
-            <button onClick={handleSaveAdd} className="px-6 py-2.5 bg-[#122C28] text-white rounded-xl text-sm font-bold hover:bg-[#1B3C37] transition-all">Simpan Data</button>
+            <button
+              onClick={() => setIsAddOpen(false)}
+              className="px-6 py-2.5 border border-gray-200 text-[#1e293b] rounded-xl text-sm font-bold hover:bg-gray-50 transition-all"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleSaveAdd}
+              className="px-6 py-2.5 bg-[#122C28] text-white rounded-xl text-sm font-bold hover:bg-[#1B3C37] transition-all"
+            >
+              Simpan Data
+            </button>
           </div>
         </div>
       </Modal>
@@ -646,6 +1075,30 @@ export default function EvaluationPage() {
         subDescription="Data yang sudah dihapus tidak dapat dikembalikan."
         cancelText="Batal"
         confirmText="Ya, Hapus"
+      />
+
+      {/* Confirm Delete Evaluasi */}
+      <ConfirmDialog
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={confirmDelete}
+        title="Hapus Data Evaluasi?"
+        description="Apakah kamu yakin ingin menghapus data evaluasi ini?"
+        subDescription="Data yang dihapus tidak dapat dikembalikan lagi."
+        confirmText="Ya, Hapus"
+        variant="danger"
+      />
+
+      {/* No Data Alert */}
+      <ConfirmDialog
+        isOpen={showNoDataAlert}
+        onClose={() => setShowNoDataAlert(false)}
+        onConfirm={() => setShowNoDataAlert(false)}
+        title="Data Belum Tersedia"
+        description="Konten ini belum memiliki data evaluasi yang bisa dihapus."
+        subDescription="Silakan tambahkan data evaluasi terlebih dahulu jika ingin melakukan perubahan."
+        confirmText="Dimengerti"
+        variant="warning"
       />
 
       {/* Success Dialog */}

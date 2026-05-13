@@ -10,9 +10,8 @@ import {
   BarChart3,
   LogOut,
   Menu,
-  Instagram,
-  Clapperboard
 } from "lucide-react";
+import Image from "next/image";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { createClient } from "@/lib/supabase/client";
@@ -48,18 +47,29 @@ export default function DashboardLayout({
   }, []);
 
   async function fetchUserData() {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (user) {
       const workspaces = await getUserWorkspaces(user.id);
       if (workspaces && workspaces.length > 0) {
         const storedId = localStorage.getItem("active_workspace_id");
         const active = storedId
-          ? workspaces.find((ws: any) => ws.id_workspace.toString() === storedId) || workspaces[0]
+          ? workspaces.find(
+              (ws: any) => ws.id_workspace.toString() === storedId,
+            ) || workspaces[0]
           : workspaces[0];
         setActiveWorkspace(active);
 
         // Also ensure the stored ID matches the one we're using
-        localStorage.setItem("active_workspace_id", active.id_workspace.toString());
+        localStorage.setItem(
+          "active_workspace_id",
+          active.id_workspace.toString(),
+        );
+        localStorage.setItem(
+          "active_workspace_name",
+          active.nama_workspace || "",
+        );
       }
     } else {
       router.push("/login");
@@ -87,33 +97,43 @@ export default function DashboardLayout({
       )}
 
       {/* Sidebar */}
-      <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-[#122C28] text-white transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 border-r border-[#1B3C37] flex flex-col",
-        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 w-64 bg-[#122C28] text-white transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 border-r border-[#1B3C37] flex flex-col",
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
         {/* Logo Section */}
         <div className="p-6 flex items-center gap-3">
           <div className="w-10 h-10 bg-black/20 rounded-lg flex items-center justify-center overflow-hidden">
-            <span className="text-[#10b981] font-bold text-xl">S</span>
+            <Image src="/logo.jpeg" alt="SanggaluriMS Logo" width={40} height={40} className="object-cover w-full h-full" />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-lg leading-tight tracking-tight">SanggaluriMS</span>
-            <span className="text-[10px] text-white/50 tracking-widest uppercase">Social Media Management</span>
+            <span className="font-bold text-lg leading-tight tracking-tight">
+              SanggaluriMS
+            </span>
+            <span className="text-[10px] text-white/50 tracking-widest uppercase">
+              Social Media Management
+            </span>
           </div>
         </div>
 
         {/* Workspace Selector (Top) */}
         <div className="px-6 py-4 border-t border-b border-[#1B3C37]">
           <Link href="/workspaces" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-black shadow-sm group-hover:scale-105 transition-transform">
-              {activeWorkspace?.nama_workspace?.toLowerCase().includes("tiktok") ? (
-                <Clapperboard className="w-5 h-5" />
+            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-black shadow-sm group-hover:scale-105 transition-transform overflow-hidden">
+              {activeWorkspace?.nama_workspace
+                ?.toLowerCase()
+                .includes("tiktok") ? (
+                <Image src="/tiktok.svg" alt="TikTok" width={24} height={24} />
               ) : (
-                <Instagram className="w-5 h-5" />
+                <Image src="/instagram.svg" alt="Instagram" width={24} height={24} />
               )}
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-sm">{activeWorkspace?.nama_workspace || "Pilih Workspace"}</span>
+              <span className="font-bold text-sm">
+                {activeWorkspace?.nama_workspace || "Pilih Workspace"}
+              </span>
               <span className="text-xs text-white/50">Switch Workspace</span>
             </div>
           </Link>
@@ -122,7 +142,9 @@ export default function DashboardLayout({
         {/* Navigation */}
         <div className="flex-1 overflow-y-auto py-6">
           <div className="px-6 mb-3">
-            <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Main Menu</span>
+            <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">
+              Main Menu
+            </span>
           </div>
           <nav className="px-4 space-y-1">
             {sidebarItems.map((item) => {
@@ -135,13 +157,17 @@ export default function DashboardLayout({
                     "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group text-sm font-medium",
                     isActive
                       ? "bg-[#10b981]/10 border border-[#10b981]/30 text-white"
-                      : "text-white/70 hover:bg-white/5 hover:text-white border border-transparent"
+                      : "text-white/70 hover:bg-white/5 hover:text-white border border-transparent",
                   )}
                 >
-                  <item.icon className={cn(
-                    "w-5 h-5",
-                    isActive ? "text-[#10b981]" : "text-white/50 group-hover:text-white"
-                  )} />
+                  <item.icon
+                    className={cn(
+                      "w-5 h-5",
+                      isActive
+                        ? "text-[#10b981]"
+                        : "text-white/50 group-hover:text-white",
+                    )}
+                  />
                   <span>{item.name}</span>
                 </Link>
               );
@@ -175,9 +201,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
       </div>
 
       {/* Logout Confirmation Dialog */}

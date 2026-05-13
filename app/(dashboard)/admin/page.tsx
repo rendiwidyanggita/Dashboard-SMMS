@@ -104,24 +104,28 @@ export default function DashboardPage() {
       value: konten.filter(k => k.status_konten?.toLowerCase() === 'uploaded').length.toString(),
       icon: <div className="p-2 bg-[#EEF2FF] rounded-lg text-[#6366F1]"><UploadCloud className="w-5 h-5" /></div>,
       trendText: `↑ ${konten.filter(k => k.status_konten?.toLowerCase() === 'uploaded').length} dari target`,
+      trendColor: "text-[#10b981]"
     },
     {
       title: "Metrik Pertumbuhan Views Last Month",
       value: `${growth?.growth_percentage || 0}%`,
       icon: <div className="p-2 bg-[#FFFBEB] rounded-lg text-[#F59E0B]"><FileText className="w-5 h-5" /></div>,
-      trendText: growth?.growth_percentage >= 0 ? "↑ vs bulan lalu" : "↓ vs bulan lalu",
+      trendText: (growth?.growth_percentage || 0) >= 0 ? `↑ vs bulan lalu` : `↓ vs bulan lalu`,
+      trendColor: (growth?.growth_percentage || 0) >= 0 ? "text-[#10b981]" : "text-[#ef4444]"
     },
     {
       title: "Total Likes Bulan Ini",
       value: totalLikes > 1000 ? `${(totalLikes / 1000).toFixed(1)}K` : totalLikes.toString(),
       icon: <div className="p-2 bg-[#FEF2F2] rounded-lg text-[#EF4444]"><Heart className="w-5 h-5" /></div>,
       trendText: "↑ Berdasarkan data evaluasi",
+      trendColor: "text-[#10b981]"
     },
     {
       title: "Rata-rata ER",
       value: `${avgER}%`,
       icon: <div className="p-2 bg-[#FFF7ED] rounded-lg text-[#F97316]"><Zap className="w-5 h-5" /></div>,
       trendText: Number(avgER) > 5 ? "↑ Bagus" : "• Perlu ditingkatkan",
+      trendColor: Number(avgER) > 5 ? "text-[#10b981]" : "text-[#f59e0b]"
     },
   ];
 
@@ -180,7 +184,7 @@ export default function DashboardPage() {
             </div>
             <h3 className="text-xs font-bold text-gray-500 mb-1">{stat.title}</h3>
             <div className="text-3xl font-extrabold text-[#1e293b] mb-3">{stat.value}</div>
-            <div className="text-xs font-bold text-[#10b981]">{stat.trendText}</div>
+            <div className={clsx("text-xs font-bold", stat.trendColor)}>{stat.trendText}</div>
           </div>
         ))}
       </div>
@@ -246,27 +250,31 @@ export default function DashboardPage() {
             <div className="grid grid-cols-3 gap-y-4 gap-x-2">
               <div>
                 <p className="text-[10px] text-white/50 mb-1">Views</p>
-                <p className="text-sm font-bold">{mainTopKonten ? (mainTopKonten.metric_value >= 1000 ? (mainTopKonten.metric_value / 1000).toFixed(1) + 'K' : mainTopKonten.metric_value) : '-'}</p>
+                <p className="text-sm font-bold">
+                  {mainTopKonten?.total_views ? (mainTopKonten.total_views >= 1000 ? (mainTopKonten.total_views / 1000).toFixed(1) + 'K' : mainTopKonten.total_views) : '-'}
+                </p>
               </div>
               <div>
                 <p className="text-[10px] text-white/50 mb-1">Likes</p>
-                <p className="text-sm font-bold">{mainTopKonten?.total_likes || '-'}</p>
+                <p className="text-sm font-bold">{mainTopKonten?.total_likes ?? '-'}</p>
               </div>
               <div>
                 <p className="text-[10px] text-white/50 mb-1">Comment</p>
-                <p className="text-sm font-bold">{mainTopKonten?.total_comment || '-'}</p>
+                <p className="text-sm font-bold">{mainTopKonten?.total_comment ?? '-'}</p>
               </div>
               <div>
                 <p className="text-[10px] text-white/50 mb-1">Share</p>
-                <p className="text-sm font-bold">{mainTopKonten?.total_share || '-'}</p>
+                <p className="text-sm font-bold">{mainTopKonten?.total_shares ?? '-'}</p>
               </div>
               <div>
                 <p className="text-[10px] text-white/50 mb-1">Favorite</p>
-                <p className="text-sm font-bold">{mainTopKonten?.total_favorite || '-'}</p>
+                <p className="text-sm font-bold">{mainTopKonten?.total_favorites ?? '-'}</p>
               </div>
               <div>
                 <p className="text-[10px] text-white/50 mb-1">ER</p>
-                <p className="text-sm font-bold text-[#10b981]">{mainTopKonten?.nilai_er ? `${mainTopKonten.nilai_er}%` : '-'}</p>
+                <p className="text-sm font-bold text-[#10b981]">
+                  {mainTopKonten?.engagement_rate ? `${Number(mainTopKonten.engagement_rate).toFixed(2)}%` : '-'}
+                </p>
               </div>
             </div>
           </div>
@@ -293,18 +301,20 @@ export default function DashboardPage() {
           {/* Trend Views */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <h3 className="text-xs font-bold text-gray-500 mb-6">Trend Views (7 Hari)</h3>
-            <div className="flex items-end justify-between h-32 gap-1">
+            <div className="flex items-end justify-between h-32 gap-3 px-1">
               {trendViews.length > 0 ? trendViews.map((item, idx) => {
                 const maxViews = Math.max(...trendViews.map(v => v.views)) || 1;
                 const height = (item.views / maxViews) * 100;
+                const isLast = idx === trendViews.length - 1;
+                
                 return (
                   <div 
                     key={idx} 
                     className={clsx(
-                      "w-full rounded-t-md transition-all duration-500",
-                      idx === trendViews.length - 1 ? "bg-[#10b981]" : "bg-[#e2e8f0]"
+                      "flex-1 rounded-xl transition-all duration-700",
+                      isLast ? "bg-[#10b981]" : "bg-[#f1f5f9]"
                     )}
-                    style={{ height: `${Math.max(height, 5)}%` }}
+                    style={{ height: `${Math.max(height, 8)}%` }}
                     title={`${item.date}: ${item.views} views`}
                   ></div>
                 );
@@ -315,11 +325,11 @@ export default function DashboardPage() {
               )}
             </div>
             {trendViews.length > 0 && (
-              <div className="flex justify-between mt-2">
-                <span className="text-[9px] font-bold text-gray-400">
+              <div className="flex justify-between mt-4">
+                <span className="text-[10px] font-bold text-[#1e293b]">
                   {trendViews[0].views >= 1000 ? `${(trendViews[0].views / 1000).toFixed(1)}K` : trendViews[0].views} views
                 </span>
-                <span className="text-[9px] font-bold text-gray-400 text-right">
+                <span className="text-[10px] font-bold text-[#1e293b] text-right">
                   {trendViews[trendViews.length - 1].views >= 1000 ? `${(trendViews[trendViews.length - 1].views / 1000).toFixed(1)}K` : trendViews[trendViews.length - 1].views} views
                 </span>
               </div>
