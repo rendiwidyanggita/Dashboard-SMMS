@@ -46,3 +46,5 @@ SMMS UI/
 /lib/generated/prisma
 .agents/
 skills-lock.json
+
+responsive.md

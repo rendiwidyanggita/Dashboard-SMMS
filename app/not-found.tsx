@@ -22,8 +22,9 @@ export default function NotFound() {
         </h2>
 
         <p className="text-[15px] text-gray-500 font-medium leading-relaxed mb-10 max-w-[320px] mx-auto">
-          It looks like you've taken a wrong turn. The page you're looking for may
-          have been deleted, moved, or the URL may have been typed incorrectly.
+          It looks like you've taken a wrong turn. The page you're looking for
+          may have been deleted, moved, or the URL may have been typed
+          incorrectly.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
