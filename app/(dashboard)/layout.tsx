@@ -56,7 +56,7 @@ export default function DashboardLayout({
         const storedId = localStorage.getItem("active_workspace_id");
         const active = storedId
           ? workspaces.find(
-              (ws: any) => ws.id_workspace.toString() === storedId,
+              (ws: any) => ws.id_workspace.toString() === storedId
             ) || workspaces[0]
           : workspaces[0];
         setActiveWorkspace(active);
@@ -64,11 +64,11 @@ export default function DashboardLayout({
         // Also ensure the stored ID matches the one we're using
         localStorage.setItem(
           "active_workspace_id",
-          active.id_workspace.toString(),
+          active.id_workspace.toString()
         );
         localStorage.setItem(
           "active_workspace_name",
-          active.nama_workspace || "",
+          active.nama_workspace || ""
         );
       }
     } else {
@@ -100,17 +100,17 @@ export default function DashboardLayout({
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-64 bg-[#122C28] text-white transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 border-r border-[#1B3C37] flex flex-col",
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Logo Section */}
         <div className="p-6 flex items-center gap-3">
           <div className="w-10 h-10 bg-black/20 rounded-lg flex items-center justify-center overflow-hidden">
-            <Image 
-              src="/logo.jpeg" 
-              alt="SanggaluriMS Logo" 
-              width={40} 
-              height={40} 
+            <Image
+              src="/logo.jpeg"
+              alt="SanggaluriMS Logo"
+              width={40}
+              height={40}
               className="object-cover w-full h-full"
               sizes="40px"
             />
@@ -132,9 +132,21 @@ export default function DashboardLayout({
               {activeWorkspace?.nama_workspace
                 ?.toLowerCase()
                 .includes("tiktok") ? (
-                <Image src="/tiktok.svg" alt="TikTok" width={24} height={24} sizes="24px" />
+                <Image
+                  src="/tiktok.svg"
+                  alt="TikTok"
+                  width={24}
+                  height={24}
+                  sizes="24px"
+                />
               ) : (
-                <Image src="/instagram.svg" alt="Instagram" width={24} height={24} sizes="24px" />
+                <Image
+                  src="/instagram.svg"
+                  alt="Instagram"
+                  width={24}
+                  height={24}
+                  sizes="24px"
+                />
               )}
             </div>
             <div className="flex flex-col">
@@ -164,7 +176,7 @@ export default function DashboardLayout({
                     "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group text-sm font-medium min-h-[44px]",
                     isActive
                       ? "bg-[#10b981]/10 border border-[#10b981]/30 text-white"
-                      : "text-white/70 hover:bg-white/5 hover:text-white border border-transparent",
+                      : "text-white/70 hover:bg-white/5 hover:text-white border border-transparent"
                   )}
                 >
                   <item.icon
@@ -172,7 +184,7 @@ export default function DashboardLayout({
                       "w-5 h-5",
                       isActive
                         ? "text-[#10b981]"
-                        : "text-white/50 group-hover:text-white",
+                        : "text-white/50 group-hover:text-white"
                     )}
                   />
                   <span>{item.name}</span>

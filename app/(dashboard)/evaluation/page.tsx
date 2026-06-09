@@ -25,7 +25,7 @@ export default function EvaluationPage() {
   const [stats, setStats] = useState<any[]>([]);
   const [activeFilter, setActiveFilter] = useState(0); // 0: Semua, 1: Bulan Ini, 2: Last Week
   const [selectedMonth, setSelectedMonth] = useState<string>(
-    new Date().toLocaleString("en-US", { month: "short" }).toLowerCase(),
+    new Date().toLocaleString("en-US", { month: "short" }).toLowerCase()
   );
   const [limit, setLimit] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -126,7 +126,7 @@ export default function EvaluationPage() {
       if (searchQuery.trim() !== "") {
         const query = searchQuery.toLowerCase();
         filteredData = filteredData.filter((item: any) =>
-          item.nama_konten.toLowerCase().includes(query),
+          item.nama_konten.toLowerCase().includes(query)
         );
       }
 
@@ -136,23 +136,23 @@ export default function EvaluationPage() {
 
       // Compute Stats
       const uploaded = data.filter(
-        (k: any) => k.status_konten === "uploaded",
+        (k: any) => k.status_konten === "uploaded"
       ).length;
       const unuploaded = data.filter(
-        (k: any) => k.status_konten === "unuploaded",
+        (k: any) => k.status_konten === "unuploaded"
       ).length;
       const pending = data.filter(
-        (k: any) => k.status_konten === "pending",
+        (k: any) => k.status_konten === "pending"
       ).length;
       const cancelled = data.filter(
-        (k: any) => k.status_konten === "cancelled",
+        (k: any) => k.status_konten === "cancelled"
       ).length;
 
       setStats([
         { label: "Total Konten", value: data.length },
         { label: "Uploaded", value: uploaded, valueColor: "text-[#10b981]" },
         {
-          label: "Unuploaded",
+          label: "Unploaded",
           value: unuploaded,
           valueColor: "text-[#ef4444]",
         },
@@ -326,7 +326,7 @@ export default function EvaluationPage() {
             <div
               className={clsx(
                 "text-3xl font-extrabold",
-                stat.valueColor || "text-[#1e293b]",
+                stat.valueColor || "text-[#1e293b]"
               )}
             >
               {stat.value}
@@ -395,7 +395,7 @@ export default function EvaluationPage() {
                     "px-4 py-1.5 text-xs font-bold rounded-lg transition-all",
                     activeFilter === i
                       ? "bg-white text-[#1e293b] shadow-sm"
-                      : "text-gray-400 hover:text-gray-600",
+                      : "text-gray-400 hover:text-gray-600"
                   )}
                 >
                   {f}
@@ -537,10 +537,10 @@ export default function EvaluationPage() {
                     erVal > 10
                       ? "good"
                       : erVal > 5
-                        ? "average"
-                        : erVal > 0
-                          ? "average"
-                          : "none";
+                      ? "average"
+                      : erVal > 0
+                      ? "average"
+                      : "none";
 
                   return (
                     <tr
@@ -555,14 +555,14 @@ export default function EvaluationPage() {
                       <td className="px-4 py-4 text-xs text-gray-500 font-medium">
                         {konten.tanggal_upload
                           ? new Date(konten.tanggal_upload).toLocaleDateString(
-                              "id-ID",
+                              "id-ID"
                             )
                           : "-"}
                       </td>
                       <td className="px-4 py-4 text-xs text-gray-500 font-medium">
                         {evalData?.tanggal_evaluasi
                           ? new Date(
-                              evalData.tanggal_evaluasi,
+                              evalData.tanggal_evaluasi
                             ).toLocaleDateString("id-ID")
                           : "-"}
                       </td>
@@ -588,7 +588,7 @@ export default function EvaluationPage() {
                             erType === "good" && "bg-[#ccfbf1] text-[#0f766e]",
                             erType === "average" &&
                               "bg-[#dcfce7] text-[#166534]",
-                            erType === "none" && "bg-[#fee2e2] text-[#991b1b]",
+                            erType === "none" && "bg-[#fee2e2] text-[#991b1b]"
                           )}
                         >
                           {er}
@@ -659,7 +659,7 @@ export default function EvaluationPage() {
                             "w-10 h-10 text-xs font-bold rounded-xl transition-all active:scale-95",
                             currentPage === pageNum
                               ? "bg-[#122C28] text-white shadow-md shadow-[#122C28]/20"
-                              : "bg-white border border-gray-100 text-[#1e293b]/60 hover:text-[#1e293b] hover:bg-gray-50",
+                              : "bg-white border border-gray-100 text-[#1e293b]/60 hover:text-[#1e293b] hover:bg-gray-50"
                           )}
                         >
                           {pageNum}
@@ -676,13 +676,13 @@ export default function EvaluationPage() {
                       );
                     }
                     return null;
-                  },
+                  }
                 )}
               </div>
               <button
                 onClick={() =>
                   setCurrentPage((prev) =>
-                    Math.min(prev + 1, Math.ceil(totalData / limit)),
+                    Math.min(prev + 1, Math.ceil(totalData / limit))
                   )
                 }
                 disabled={currentPage === Math.ceil(totalData / limit)}
@@ -890,7 +890,7 @@ export default function EvaluationPage() {
                 value={addForm.id_konten}
                 onChange={(e) => {
                   const k = kontenList.find(
-                    (item) => item.id_konten.toString() === e.target.value,
+                    (item) => item.id_konten.toString() === e.target.value
                   );
                   setAddForm({
                     ...addForm,
