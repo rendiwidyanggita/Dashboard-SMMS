@@ -3,6 +3,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { getSupabaseEnv } from '@/lib/supabase/env';
 
 export async function loginAdminAction(formData: FormData) {
   const email = formData.get('email') as string;
@@ -11,9 +12,10 @@ export async function loginAdminAction(formData: FormData) {
 
   try {
     const cookieStore = await cookies();
+    const { url, publishableKey } = getSupabaseEnv();
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      url,
+      publishableKey,
       {
         cookies: {
           getAll() {
@@ -54,9 +56,10 @@ export async function loginAdminAction(formData: FormData) {
 
 export async function logoutAdminAction() {
   const cookieStore = await cookies();
+  const { url, publishableKey } = getSupabaseEnv();
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    publishableKey,
     {
       cookies: {
         getAll() {
