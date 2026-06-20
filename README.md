@@ -1,57 +1,75 @@
-# Dashboard-SMMS
+# Dashboard-SMMS — Social Media Management System
 
-Social Media Management System — Next.js 16 + Supabase + Prisma.
+A unified social media management dashboard for **Sanggaluri Park Purbalingga**, built with **Next.js & Supabase**.
 
-**Repository:** https://github.com/sanggaluriparkpurbalingga-dev/Dashboard-SMMS
+The core problem we set out to solve: managing social media presence across different platforms like Instagram and TikTok is often disjointed, making it difficult to maintain consistent content schedules and track overall performance.
 
-## Tech Stack
+---
 
-- Next.js 16 (App Router, Turbopack)
-- React 19, TypeScript 5
-- Supabase (Auth + Postgres)
-- Prisma ORM 5.22
-- Tailwind CSS v4
+## ✨ Technologies
 
-## Getting Started
+- `Next.js 16`
+- `Supabase`
+- `Prisma ORM`
+- `Tailwind CSS v4`
 
-1. Copy `.env.example` to `.env.local` and fill the new Supabase project's URL,
-   publishable key, pooled database URL, and direct database URL.
-2. Install deps: `npm install` (auto-runs `prisma generate` via postinstall).
-3. Run dev server: `npm run dev` → open [http://localhost:3000](http://localhost:3000).
+---
 
-## Deploy to Vercel
+## 🚀 Features
 
-The production project is deployed from the `main` branch of
-[sanggaluriparkpurbalingga-dev/Dashboard-SMMS](https://github.com/sanggaluriparkpurbalingga-dev/Dashboard-SMMS).
+- **Centralized Authentication** — secure login process that eliminates the need for shared passwords across multiple social accounts.
+- **Multi-Workspace Management** — dedicated workspaces for Instagram and TikTok to keep platform-specific content organized and prevent mix-ups.
+- **Streamlined Database Management** — robust data handling using Prisma, ensuring reliable content storage and retrieval without manual database administration.
 
-Configure these environment variables for both Production and Preview before
-deploying:
+---
 
+## 📍 The Process
+
+**The problem:** Managing multiple social media accounts for Sanggaluri Park Purbalingga involved constantly switching between apps, leading to inconsistent posting schedules and difficulty in maintaining a cohesive brand voice. The lack of a centralized system caused friction and wasted time.
+
+**Our approach:** We developed a unified dashboard to serve as the single source of truth for social media management. We implemented dedicated workspaces for key platforms (Instagram and TikTok) and integrated Supabase for robust authentication and data management, providing administrators with a secure and efficient tool to handle their online presence.
+
+---
+
+## 🚦 Running the Project
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Setup environment: Copy `.env.example` to `.env.local` and configure your Supabase URL, publishable key, pooled database URL, and direct database URL.
+4. Run database migrations: `npx prisma migrate dev`
+5. Start the development server: `npm run dev`
+6. Open `http://localhost:3000` in your browser
+
+---
+
+## ☁️ Deployment & Production Setup
+
+### Deploying to Vercel
+The production project is deployed from the `main` branch. Ensure you configure the following environment variables in Vercel before deploying:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `DATABASE_URL`
 - `DIRECT_URL`
 
-Do not commit production values to GitHub. `.env.local` is only used by the
-local machine and is ignored by Git; Vercel reads values configured in the
-project's Environment Variables settings. All Supabase and database values
-must come from the same Supabase project.
+*Note: Redeploy the project after changing any environment variables since `NEXT_PUBLIC_*` values are embedded during `next build`.*
 
-`DATABASE_URL` is required at runtime because the application accesses the
-database through Prisma. `DIRECT_URL` is reserved for migrations and other
-direct-connection tooling.
-
-After changing environment variables, redeploy the project because
-`NEXT_PUBLIC_*` values are embedded during `next build`.
-
-### Supabase production setup
-
+### Supabase Production Setup
 1. Create the production admin in Supabase Auth and copy the user's UUID.
-2. Insert `Instagram` and `TikTok` rows into `public.workspace`, using the
-   admin UUID as `author_id`.
+2. Insert `Instagram` and `TikTok` rows into `public.workspace`, using the admin UUID as `author_id`.
 3. Set the Supabase Auth Site URL to the production Vercel domain.
-4. Add `https://<production-domain>/auth/callback` to the allowed redirect
-   URLs.
+4. Add `https://<production-domain>/auth/callback` to the allowed redirect URLs.
 
-The application intentionally starts without content data, but the two
-workspace rows are required for the new admin to enter the dashboard.
+---
+
+## 📦 Preview
+
+<video src="preview.mp4" controls="controls" width="100%">
+  Your browser does not support the video tag.
+</video>
+
+---
+
+## 📝 License
+
+This project was built for commercial purposes.
+Licensed under the [MIT License](https://opensource.org/licenses/MIT).
