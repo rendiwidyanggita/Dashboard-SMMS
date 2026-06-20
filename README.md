@@ -42,25 +42,6 @@ The core problem we set out to solve: managing social media presence across diff
 
 ---
 
-## ☁️ Deployment & Production Setup
-
-### Deploying to Vercel
-The production project is deployed from the `main` branch. Ensure you configure the following environment variables in Vercel before deploying:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `DATABASE_URL`
-- `DIRECT_URL`
-
-*Note: Redeploy the project after changing any environment variables since `NEXT_PUBLIC_*` values are embedded during `next build`.*
-
-### Supabase Production Setup
-1. Create the production admin in Supabase Auth and copy the user's UUID.
-2. Insert `Instagram` and `TikTok` rows into `public.workspace`, using the admin UUID as `author_id`.
-3. Set the Supabase Auth Site URL to the production Vercel domain.
-4. Add `https://<production-domain>/auth/callback` to the allowed redirect URLs.
-
----
-
 ## 📦 Preview
 
 <video src="preview.mp4" controls="controls" width="100%">
